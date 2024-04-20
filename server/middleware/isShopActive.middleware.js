@@ -1,28 +1,33 @@
-import StoreModel from "../models/StoreModels.js";
+import Store from "../models/stores.model.js";
 
 const isShopActive = async (req, res, next) => {
 
   const { shop, host } = req.query;
+
+  console.log("Shop in isShopActive" , shop)
+  console.log("Host in isShopActive" , host)
 
   if (!shop) {
     next();
     return;
   }
 
-  const isShopAvaialble = await StoreModel.findOne({where : {shop : shop}})
+  console.log("isShopActive line no" , 15)
+
+  const isShopAvaialble = await Store.findOne({where : {shop : shop}})
 
   if (isShopAvaialble === null || !isShopAvaialble.isActive) {
 
     if (isShopAvaialble === null) {
 
-      await StoreModel.create({
+      await Store.create({
         shop :  shop ,
         isActive : false
       })
 
     } else if (!isShopAvaialble.isActive) {
 
-      await StoreModel.update(
+      await Store.update(
         {
           isActive : false
         },
@@ -31,7 +36,7 @@ const isShopActive = async (req, res, next) => {
           limit : 1
         }
       )
-      // await StoreModel.findOneAndUpdate({ shop }, { isActive: false });
+      // await Store.findOneAndUpdate({ shop }, { isActive: false });
     }
     
     res.redirect(`/auth?shop=${shop}&host=${host}`);

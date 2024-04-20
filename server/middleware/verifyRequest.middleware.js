@@ -1,19 +1,11 @@
 import sessionHandler from "../utils/sessionHandler.js";
 import shopify from "../utils/shopifyConfig.js";
-
-const TEST_QUERY = `
-{
-  shop {
-    name
-  }
-}`;
+import { TEST_QUERY } from "../constant.js";
 
 const verifyRequest = async (req, res, next) => {
-
   try {
-
+    
     let { shop } = req.query;
-
     const sessionId = await shopify.session.getCurrentId({
       isOnline: true,
       rawRequest: req,
@@ -21,25 +13,23 @@ const verifyRequest = async (req, res, next) => {
     });
 
     const session = await sessionHandler.loadSession(sessionId);
-    
-    if(session && session?.shop)
-    {
-      req.query.shop = session?.shop
-    }
 
-    console.log(session, "hii from session");
-
-    console.log(`exired token is ${new Date(session?.expires)}`)
-
-    if (new Date(session?.expires) > new Date()) {
+    if (
+      new Date(session?.expires) > new Date() &&
+      shopify.config.scopes.equals(session.scope)
+    ) {
 
       const client = new shopify.clients.Graphql({ session });
-      await client.query({ data: TEST_QUERY });
-    
+      const response = await client.request(TEST_QUERY);
       res.setHeader(
         "Content-Security-Policy",
         `frame-ancestors https://${session.shop} https://admin.shopify.com;`
       );
+
+      console.log(session)
+
+      req.session = session
+      req.shopId = response?.data?.shop?.id
 
       return next();
     }
@@ -48,27 +38,31 @@ const verifyRequest = async (req, res, next) => {
 
     if (authBearer) {
       if (!shop) {
-        console.log(shop)
+        console.log(shop);
         if (session) {
-          shop = session?.shop
-        } else if (shopify.config.isEmbeddedApp || true) {
+          shop = session?.shop;
+        } else if (shopify.config.isEmbeddedApp) {
           if (authBearer) {
             const payload = await shopify.session.decodeSessionToken(
               authBearer[1]
             );
-            shop = payload.dest.replace("https://", "")
+            shop = payload.dest.replace("https://", "");
           }
         }
       }
-      res.status(403);
-      res.header("X-Shopify-API-Request-Failure-Reauthorize", "1");
-      res.header(
-        "X-Shopify-API-Request-Failure-Reauthorize-Url",
-        `/exitframe/${shop}`
-      );
-      res.end();
-    } else {
-      res.redirect(`/exitframe/${shop}`);
+      res
+        .status(403)
+        .setHeader("Verify-Request-Failure", "1")
+        .setHeader("Verify-Request-Reauth-URL", `/exitframe/${shop}`)
+        .end();
+    } 
+    else {
+      res
+        .status(403)
+        .setHeader("Verify-Request-Failure", "1")
+        .setHeader("Verify-Request-Reauth-URL", `/exitframe/${shop}`)
+        .end();
+      return;
     }
   } catch (e) {
     console.error(e);

@@ -1,5 +1,5 @@
-import SessionModel from "../models/SessionModels.js";
-import StoreModel from "../models/StoreModels.js";
+import Session from "../models/sessions.model.js";
+import Store from "../models/stores.model.js";
 
 /**
  * @typedef { import("../../_developer/types/2023-07/webhooks.js").APP_UNINSTALLED } webhookTopic
@@ -15,20 +15,23 @@ const appUninstallHandler = async (
   /** @type {webhookTopic} */
   const webhookBody = JSON.parse(webhookRequestBody);
 
-  await StoreModel.update(
+  await Store.update(
     {
       isActive : false
     },
     {
-      where : {shop :  shop},
-      limit : 1
+      where: {
+        shopId: `gid://shopify/Shop/${webhookBody.id}`,
+      },
+      limit: 1
     }
   )
-  // await StoreModel.findOneAndUpdate({ shop }, { isActive: false });
 
-  await SessionModel.destroy({where : {shop : shop}})
-
-  // await SessionModel.deleteMany({ shop });
+  await Session.destroy({
+    where:{
+      shopId:`gid://shopify/Shop/${webhookBody.id}`
+    }
+  })
 };
 
 export default appUninstallHandler;

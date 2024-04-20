@@ -1,59 +1,48 @@
 import { Session } from "@shopify/shopify-api";
 import Cryptr from "cryptr";
-import SessionModel from "../models/SessionModels.js";
+import Sessions from "../models/sessions.model.js";
 
 const cryption = new Cryptr(process.env.ENCRYPTION_STRING);
 
-const storeSession = async (session) => {
+const storeSession = async (session , shopId) => {
 
-  const [result , created ] = await SessionModel.findOrCreate({
-        where: { id: session.id },
-        defaults: {
-         content : cryption.encrypt(JSON.stringify(session)),
-         shop : session.shop,
-        }
-      })
+  const storeSession = await Sessions.findByPk(session?.id)
 
-      if(!created)
+  if(storeSession){
+    await Sessions.update(
       {
-         await SessionModel.update(
-          {
-            content : cryption.encrypt(JSON.stringify(session)),
-            shop: session.shop
-          },
-          {
-            where : {id :  session.id},
-            limit : 1
-          },
-          
-         )
+        token: cryption.encrypt(JSON.stringify(session)),
+        shopId: shopId,
+        isOnline: session.isOnline
+      },
+      {
+        where:{
+          id: session.id
+        }
       }
-  
-
-  // await SessionModel.findOneAndUpdate(
-  //   { id: session.id },
-  //   {
-  //     content: cryption.encrypt(JSON.stringify(session)),
-  //     shop: session.shop,
-  //   },
-  //   { upsert: true }
-  // );
+    )
+  }
+  else{
+    await Sessions.create({
+        id: session.id,
+        token: cryption.encrypt(JSON.stringify(session)),
+        shopId: shopId,
+        isOnline: session.isOnline
+    })
+  }
 
   return true;
 };
 
 const loadSession = async (id) => {
 
-  const sessionResult = await SessionModel.findOne({ where : {id :  id}} )
-  const sessionRes = await SessionModel.findAll({ where : {id :  id}} )
-
-  console.log(sessionRes)
+  const sessionResult = await Sessions.findByPk(id)
 
   if (sessionResult === null) {
     return undefined;
   }
-  if (sessionResult.content.length > 0) {
-    const sessionObj = JSON.parse(cryption.decrypt(sessionResult.content));
+  if (sessionResult.token.length > 0) {
+    const sessionObj = JSON.parse(cryption.decrypt(sessionResult.token));
     const returnSession = new Session(sessionObj);
     return returnSession;
   }
@@ -61,7 +50,7 @@ const loadSession = async (id) => {
 };
 
 const deleteSession = async (id) => {
-  await SessionModel.destroy({where : {id : id}})
+  await Sessions.destroy({where : {id : id}})
   return true;
 };
 

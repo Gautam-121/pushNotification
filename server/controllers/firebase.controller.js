@@ -2,11 +2,9 @@ import axios from "axios";
 import dotenv from "dotenv";
 dotenv.config();
 import Cryptr from "cryptr";
-import SessionModel from "../models/SessionModels.js";
+import Session from "../models/sessions.model.js";
 import readJsonlFile from "../utils/retiveJsonFile.js"
 import downloadJsonlFile from "../utils/downLoadJsonFile.js";
-
-
 
 const cryption = new Cryptr(process.env.ENCRYPTION_STRING);
 
@@ -14,8 +12,8 @@ export const getServerKey = async (req, res) => {
 
   try {
 
-    const shop = req.query.shop;
-    const [, sessionDetail] = await SessionModel.findAll({ where: { shop: shop } });
+    // const shop = req.query.shop;
+    // const [, sessionDetail] = await Session.findAll({ where: { shop: shop } });
 
     if (!sessionDetail || !sessionDetail.serverKey) {
       return res
@@ -51,7 +49,7 @@ export const updateServerKey = async (req, res) => {
       })
     }
 
-    const storeData = await SessionModel.update(
+    const storeData = await Session.update(
       {
         serverKey: serverKey
       },
@@ -83,6 +81,8 @@ export const sendNotification = async (req, res) => {
 
     const shop = req.query?.shop;
 
+    console.log("Enter")
+
     if (!shop) {
       return res.status(400).json({
         success: false,
@@ -90,7 +90,7 @@ export const sendNotification = async (req, res) => {
       })
     }
 
-    const [, sessionDetail] = await SessionModel.findAll({ where: { shop: shop } })
+    const [, sessionDetail] = await Session.findAll({ where: { shop: shop } })
 
     if (sessionDetail === null) {
       return undefined;
@@ -98,6 +98,8 @@ export const sendNotification = async (req, res) => {
     if (sessionDetail.content.length == 0) {
       return undefined;
     }
+
+    console.log("Enter upto 104")
 
     const { accessToken } = JSON.parse(cryption.decrypt(sessionDetail.content));
 
@@ -127,6 +129,11 @@ export const sendNotification = async (req, res) => {
         "Content-Type": "application/json",
       },
     };
+
+    console.log("ServerKey" , sessionDetail.serverKey , "Server key end")
+
+    console.log("Enter upto 135")
+
 
     const topicName = name.replace(/\W+/g, '_'); // Replace non-alphanumeric characters with underscores
 
@@ -164,6 +171,9 @@ export const sendNotification = async (req, res) => {
   }
     }`
 
+    console.log("Enter upto 174")
+
+
     const customersBulkIdResponse = await axios.post(shopifyGraphQLEndpoint, { query: customerSegmentBulkQuery }, axiosShopifyConfig);
 
     const operationId = (customersBulkIdResponse?.data?.data?.bulkOperationRunQuery?.bulkOperation?.id) + ""
@@ -179,6 +189,8 @@ export const sendNotification = async (req, res) => {
       }
     }
   `;
+
+  console.log("Enter upto 192")
 
       const statusResponse = await axios.post(
         shopifyGraphQLEndpoint,
@@ -212,6 +224,7 @@ export const sendNotification = async (req, res) => {
   }
 }
 `;
+console.log("Enter upto 227")
 
     //Execute the GraphQL query for operation details
     const operationResponse = await axios.post(
@@ -240,6 +253,9 @@ export const sendNotification = async (req, res) => {
       },
       axiosFirebaseConfig
     );
+
+    console.log("Enter upto 256")
+
 
     if (subscribeTopic?.data?.results?.error) {
       return res.status(401).json({
@@ -292,6 +308,7 @@ export const sendNotification = async (req, res) => {
     });
 
   } catch (error) {
+    console.log(error)
     return res.status(500).json({
       success: false, message: error.message, statusCode: error.response?.status,
       data: error.response?.data

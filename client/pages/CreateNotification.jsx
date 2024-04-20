@@ -94,7 +94,7 @@ export default function CreateNotification() {
 
   //response received from the useDataFetcher hook when sendNotification API is called
   const [notificationMessagePost, fetchNotificactionMessagePost] =
-    useDataFetcher("", "/api/sendNotificatication", postOptions);
+    useDataFetcher("", "apps/api/firebase/sendNotificatication", postOptions);
 
   const handleFilteredDataChange = (filteredData) => {
     // Process the filteredData in the parent component

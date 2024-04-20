@@ -4,21 +4,14 @@ import express from "express";
 import { resolve } from "path";
 import shopify from "./utils/shopifyConfig.js";
 import cors from "cors"
-import sequelize from "./config/database.js"
-
+import { connectDB } from "./config/index.js"
 import sessionHandler from "./utils/sessionHandler.js";
-import csp from "./middleware/csp.js";
+import csp from "./middleware/csp.middleware.js";
 import setupCheck from "./utils/setupCheck.js";
-import {
-  customerDataRequest,
-  customerRedact,
-  shopRedact,
-} from "./controllers/gdpr.js";
-import applyAuthMiddleware from "./middleware/auth.js";
-import isShopActive from "./middleware/isShopActive.js";
-import verifyHmac from "./middleware/verifyHmac.js";
-import verifyProxy from "./middleware/verifyProxy.js";
-import verifyRequest from "./middleware/verifyRequest.js";
+import applyAuthMiddleware from "./middleware/auth.middleware.js";
+import isShopActive from "./middleware/isShopActive.middleware.js";
+import verifyProxy from "./middleware/verifyProxy.middleware.js";
+import verifyRequest from "./middleware/verifyRequest.middleware.js";
 import proxyRouter from "./routes/app_proxy/index.js";
 import router from "./routes/index.js";
 import webhookRegistrar from "./webhooks/index.js";
@@ -27,13 +20,6 @@ setupCheck(); // Run a check to ensure everything is setup properly
 
 const PORT = parseInt(process.env.PORT, 10) || 8081;
 const isDev = process.env.NODE_ENV === "dev";
-
-
-sequelize.sync().then(() => {
-   console.log('Database synced');
-}).catch((err)=>{
-  console.log(err)
-});
  
 // Register all webhook handlers
 webhookRegistrar();
@@ -97,52 +83,8 @@ const createServer = async (root = process.cwd()) => {
   app.use(csp);
   app.use(isShopActive);
   // If you're making changes to any of the routes, please make sure to add them in `./client/vite.config.cjs` or it'll not work.
-  app.use("/apps", verifyRequest , router); //Verify user route requests
+  app.use("/apps" , verifyRequest , router); //Verify user route requests
   app.use("/proxy_route", verifyProxy, proxyRouter); //MARK:- App Proxy routes
-
-  app.post("/gdpr/:topic", verifyHmac, async (req, res) => {
-    const { body } = req;
-    const { topic } = req.params;
-    const shop = req.body.shop_domain;
-
-    console.warn(`--> GDPR request for ${shop} / ${topic} recieved.`);
-
-    let response;
-    switch (topic) {
-      case "customers_data_request":
-        response = await customerDataRequest(topic, shop, body);
-        break;
-      case "customers_redact":
-        response = await customerRedact(topic, shop, body);
-        break;
-      case "shop_redact":
-        response = await shopRedact(topic, shop, body);
-        break;
-      default:
-        console.error(
-          "--> Congratulations on breaking the GDPR route! Here's the topic that broke it: ",
-          topic
-        );
-        response = "broken";
-        break;
-    }
-
-    if (response.success) {
-      res.status(200).send();
-    } else {
-      res.status(403).send("An error occured");
-    }
-  });
-
-  // if(process.env.NODE_ENV == "production"){
-
-  //   const path = require('path')
-
-  //   app.get("/" , (req , res)=>{
-  //     app.use(express.static(path.resolve(__dirname , 'dist' , 'client' )))
-  //     res.sendFile(path.resolve(__dirname , "dist" , "client" , "index.html"))
-  //   }) 
-  // }
 
   if (!isDev) {
     const compression = await import("compression").then(
@@ -166,8 +108,14 @@ const createServer = async (root = process.cwd()) => {
   return { app };
 };
 
-createServer().then(({ app }) => {
-  app.listen(PORT, () => {
-    console.log(`--> Running on ${PORT}`);
+connectDB()
+  .then(() => {
+    createServer().then(({ app }) => {
+      app.listen(PORT, () => {
+        console.log(`--> Running on ${PORT}`);
+      });
+    });
+  })
+  .catch((error) => {
+    console.log("DATABASE CONNECTION FAILED", error);
   });
-});

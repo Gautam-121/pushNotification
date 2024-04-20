@@ -1,6 +1,6 @@
 import { Router } from "express";
-import {sendNotification , updateServerKey , getServerKey } from "../controllers/firebaseController.js"
-import {getAllSegment , getProduct} from "../controllers/shopifyApiCotroller.js"
+import {sendNotification , updateServerKey , getServerKey } from "../controllers/firebase.controller.js"
+import {getAllSegment , getProduct} from "../controllers/shopifyApi.cotroller.js"
 
 const router = Router();
 
@@ -10,15 +10,15 @@ router.get("/api", (req, res) => {
 });
 
 
-router.get("/api/getSegment", getAllSegment)
+router.get("/api/shopify/segment", getAllSegment)
 
-router.get("/api/getServerkey",getServerKey)
+router.get("/api/firebase/server-key",getServerKey)
 
-router.get("/api/getProduct", getProduct)
+router.get("/api/shopify/products", getProduct)
 
-router.post("/api/sendNotificatication", sendNotification)
+router.post("/api/firebase/sendNotificatication", sendNotification)
 
-router.post("/api/updateServerKey",updateServerKey)
+router.put("/api/firebase/server-key",updateServerKey)
 
 
 export default router;

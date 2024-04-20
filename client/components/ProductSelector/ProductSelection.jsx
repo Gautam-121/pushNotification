@@ -35,7 +35,7 @@ export default function ProductSelection() {
     },
     method: "GET",
   };
-  const fetchProduct = useDataFetcher([], "/api/getProduct", getProduct);
+  const fetchProduct = useDataFetcher([], "apps/api/shopify/products", getProduct);
   useEffect(() => {
     if (dataFromApi.length === 0) fetchProduct();
   }, []);

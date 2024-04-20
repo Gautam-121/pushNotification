@@ -1,9 +1,9 @@
 import React from "react";
 import ExitFrame from "./ExitFrame";
-import DebugIndex from "./pages/debug/Index";
-import BillingAPI from "./pages/debug/Billing";
+// import DebugIndex from "./pages/debug/Index";
+// import BillingAPI from "./pages/debug/Billing";
 import GetData from "./pages/debug/Data";
-import ActiveWebhooks from "./pages/debug/Webhooks";
+// import ActiveWebhooks from "./pages/debug/Webhooks";
 import CreateNotification from './pages/CreateNotification'
 import SettingsPage from './pages/SettingsPage'
 import Templates from "./pages/Templates";
@@ -15,9 +15,9 @@ const routes = {
   "/exitframe/:shop": ({ shop }) => <ExitFrame shop={shop} />,
   //Debug Cards
   // "/debug": () => <DebugIndex />,
-  "/debug/webhooks": () => <ActiveWebhooks />,
+  // "/debug/webhooks": () => <ActiveWebhooks />,
   // "/debug/data": () => <GetData />,
-  "/debug/billing": () => <BillingAPI />,
+  // "/debug/billing": () => <BillingAPI />,
   "/createnotification":()=><CreateNotification/>,
   '/settings':()=><SettingsPage/>,
   '/templates':()=><Templates/>

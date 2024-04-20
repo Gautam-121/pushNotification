@@ -38,12 +38,12 @@ const GetData = () => {
 
   const [responseSegment, fetchSegment] = useDataFetcher(
     "",
-    "/api/getSegment",
+    "apps/api/shopify/segment",
     getSegment
   );
   const [responseProduct, fetchProduct] = useDataFetcher(
     "",
-    "/api/getProduct",
+    "apps/api/shopify/products",
     getSegment
   );
   const [responseDataPost, fetchContentPost] = useDataFetcher(
@@ -53,7 +53,7 @@ const GetData = () => {
   );
   const [responseServerKey, fetchServerKey] = useDataFetcher(
     "",
-    "/api/getServerKey",
+    "apps/api/firebase/server-key",
     getServerKey
   );
 

@@ -11,7 +11,6 @@ const csp = (req, res, next) => {
   } else {
     res.setHeader("Content-Security-Policy", "frame-ancestors 'none';");
   }
-
   next();
 };
 

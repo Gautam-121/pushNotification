@@ -43,7 +43,7 @@ export default function SettingsPage() {
       Accept: "application/json",
       "Content-Type": "application/json",
     },
-    method: "POST",
+    method: "PUT",
     body: JSON.stringify({ serverKey: serverKey }),
   };
   const useDataFetcher = (initialState, url, options) => {
@@ -62,12 +62,12 @@ export default function SettingsPage() {
 
   const [serverKeyPost, postServerKey] = useDataFetcher(
     "",
-    "/api/updateServerKey",
+    "apps/api/firebase/server-key",
     postOptions
   );
   const [responseServerKey, fetchServerKey] = useDataFetcher(
     "",
-    "/api/getServerKey",
+    "apps/api/firebase/server-key",
     getServerKey
   );
 

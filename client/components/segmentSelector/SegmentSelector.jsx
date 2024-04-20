@@ -39,7 +39,7 @@ export default function SegmentSelector() {
     },
     method: "GET",
   };
-  const fetchSegments = useDataFetcher([], "/api/getSegment", getSegment);
+  const fetchSegments = useDataFetcher([], "apps/api/shopify/segment", getSegment);
   useEffect(() => {
     if (segmentsData.length === 0) fetchSegments();
   }, []);

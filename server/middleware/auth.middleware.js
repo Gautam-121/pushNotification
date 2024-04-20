@@ -1,12 +1,14 @@
 import {
+  BotActivityDetected,
   CookieNotFound,
   InvalidOAuthError,
   InvalidSession,
 } from "@shopify/shopify-api";
 import authRedirect from "../utils/authRedirect.js";
-import StoreModel from "../models/StoreModels.js";
+import Store from "../models/stores.model.js";
 import sessionHandler from "../utils/sessionHandler.js";
 import shopify from "../utils/shopifyConfig.js";
+import { TEST_QUERY } from "../constant.js"
 
 const authMiddleware = (app) => {
   
@@ -40,8 +42,10 @@ const authMiddleware = (app) => {
       });
 
       const { session } = callbackResponse;
+      const client = new shopify.clients.Graphql({ session });
+      const response = await client.request(TEST_QUERY);
 
-      await sessionHandler.storeSession(session);
+      await sessionHandler.storeSession(session , response?.data?.shop?.id);
 
       const webhookRegisterResponse = await shopify.webhooks.register({
         session,
@@ -84,31 +88,44 @@ const authMiddleware = (app) => {
       });
 
       const { session } = callbackResponse;
-      await sessionHandler.storeSession(session);
+      const client = new shopify.clients.Graphql({ session });
+      const response = await client.request(TEST_QUERY);
+
+      await sessionHandler.storeSession(session , response?.data?.shop?.id);
 
       const host = req.query.host;
       const { shop } = session;
 
-      const [result, created] = await StoreModel.findOrCreate({
-        where: { shop: shop},
-        defaults: {
-          shop : shop,
-          isActive: true
-        }
-      });
+      const store = await Store.findByPk(response?.data?.shop?.id)
 
-      if(!created){
-
-        await StoreModel.update(//Update store to true after auth has happened, or it'll cause reinstall issues.
+      if(store){
+        await Store.update(
           {
-            isActive : true,
-            limit : 1
+            shopName : shop,
+            shopifyShopDomain:session?.shop,
+            owner: session?.onlineAccessInfo?.associated_user?.first_name + " " + session?.onlineAccessInfo?.associated_user?.last_name,
+            email: session?.onlineAccessInfo?.associated_user?.email,
+            isActive: true
           },
           {
-            where : {shop : shop}
+            where:{
+              shopId: response?.data?.shop?.id
+            }
           }
         )
       }
+      else{
+        await Store.create({
+          shopId : response?.data?.shop?.id,
+          shopName : shop,
+          shopifyShopDomain:session?.shop,
+          owner: session?.onlineAccessInfo?.associated_user?.first_name + " " + session?.onlineAccessInfo?.associated_user?.last_name,
+          email: session?.onlineAccessInfo?.associated_user?.email,
+          isActive: true
+        })
+      }
+
+      console.log("session is " , session)
 
       // Redirect to app with shop parameter upon auth
       res.redirect(`/?shop=${shop}&host=${host}`);
@@ -118,11 +135,12 @@ const authMiddleware = (app) => {
       const { shop } = req.query;
       switch (true) {
         case e instanceof CookieNotFound:
-          return res.redirect(`/exitframe/${shop}`);
-          break;
         case e instanceof InvalidOAuthError:
         case e instanceof InvalidSession:
           res.redirect(`/auth?shop=${shop}`);
+          break;
+        case e instanceof BotActivityDetected:
+          res.status(410).send(e.message);
           break;
         default:
           res.status(500).send(e.message);

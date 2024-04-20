@@ -1,33 +1,38 @@
-import { Loading, useAppBridge } from "@shopify/app-bridge-react";
-import { Redirect } from "@shopify/app-bridge/actions";
 import { useEffect } from "react";
+import {
+  Card,
+  Layout,
+  Page,
+  Spinner,
+  Text,
+  BlockStack,
+} from "@shopify/polaris";
 
-const ExitFrame = (props) => {
-
-    // Use the `useAppBridge` hook to access the Shopify App Bridge
-  const app = useAppBridge();
-
+const ExitFrame = () => {
   useEffect(() => {
-
-    // Create a new instance of URLSearchParams to parse the query parameters from the current URL
-    const params = new URLSearchParams(window.location.href);
-
-    // Get the value of the "redirectUri" parameter from the query string
-    let redirectUri = params.get("redirectUri");
-
-    // If the component received a "shop" prop, construct the redirect URI with the shop parameter
-    if (props.shop) {
-      redirectUri = `https://${appOrigin}/auth?shop=${props.shop}`;
+    if (typeof window !== "undefined") {
+      const shop = window?.shopify?.config?.shop;
+      open(`https://${appOrigin}/api/auth?shop=${shop}`, "_top");
     }
+  }, []);
 
-    //Create a new Redirect object using the Shopify App Bridge
-    const redirect = Redirect.create(app);
-
-    redirect.dispatch(Redirect.Action.REMOTE, decodeURIComponent(redirectUri));
-  }, [app]);//The effect runs only when the `app` object changes
-
-  // Render a Loading component while the redirect is being processed
-  return <Loading />;
+  return (
+    <>
+      <Page>
+        <Layout>
+          <Layout.Section>
+            <Card>
+              <BlockStack gap="200">
+                <Text variant="headingMd">Security Checkpoint</Text>
+                <Text variant="bodyMd">Reauthorizing your tokens</Text>
+                <Spinner />
+              </BlockStack>
+            </Card>
+          </Layout.Section>
+        </Layout>
+      </Page>
+    </>
+  );
 };
 
 export default ExitFrame;
