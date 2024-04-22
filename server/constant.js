@@ -96,6 +96,50 @@ query GetProductsByCollectionId($collectionId: ID!, $first: Int!, $after: String
   }
 }
 `;
+export const customerSegmentBulkQuery = (id) => `
+   mutation {
+   bulkOperationRunQuery(
+   query: """
+   {
+    customerSegmentMembers(
+        first: 100
+        segmentId: "${id}"
+    ) {
+        edges {
+            node {
+            firstName
+            metafield(key: "custom.firebase_token") {
+              key
+              value
+            }
+
+            }
+        }
+    }
+   }
+    """
+  ) {
+    bulkOperation {
+      id
+      status
+    }
+    userErrors {
+      field
+      message
+    }
+  }
+}`;
+export const operationQuery = (operationId)=>`{
+  node(id: "${operationId}") {
+  ... on BulkOperation {
+    url
+    partialDataUrl
+    errorCode
+    status
+  }
+}
+}
+`
 export const shopifyGraphQLEndpoint = (shop) =>  `https://${shop || "renergii.myshopify.com"}/admin/api/${process.env.SHOPIFY_API_VERSION}/graphql.json`;
 
 export const axiosShopifyConfig = function(accessToken) {

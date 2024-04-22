@@ -110,54 +110,6 @@ export const getAllSegment = asyncHandler( async (req, res , next) => {
 
 export const getProduct = asyncHandler( async (req, res) => {
 
-  // const shop = req.query.shop;
-  
-  // const [ , sessionDetail] = await Session.findAll({where : {shop : shop}})
-
-  // if (sessionDetail === null) {
-  //   return undefined;
-  // }
-  // if (sessionDetail.content.length == 0) {
-  //   return undefined;
-  // }
-
-  // const { accessToken } = JSON.parse(cryption.decrypt(sessionDetail.content));
-
-  // const shopifyGraphQLEndpoint = `https://${sessionDetail.shop}/admin/api/2023-04/graphql.json`;
-
-  // const graphqlQuery = `
-  //   {
-  //     products(first: 100) {
-  //       edges {
-  //         node {
-  //           id
-  //           title
-  //         }
-  //       }
-  //     }
-  //   }
-  // `;
-
-  // const axiosShopifyConfig = {
-  //   headers: {
-  //     "Content-Type": "application/json",
-  //     "X-Shopify-Access-Token": accessToken,
-  //   },
-  // };
-
-  // const fetchProducts = await axios.post(
-  //   shopifyGraphQLEndpoint,
-  //   { query: graphqlQuery },
-  //   axiosShopifyConfig
-  // );
-
-  // const products = fetchProducts?.data?.data?.products?.edges?.map((edge) => edge.node);
-
-  // return res.status(200).json({
-  //   success: true,
-  //   products
-  // });
-
   const store = await Store.findByPk(req?.shopId)
 
   if(!store || !store.isActive){

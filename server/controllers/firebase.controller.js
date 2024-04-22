@@ -5,176 +5,212 @@ import Cryptr from "cryptr";
 import Session from "../models/sessions.model.js";
 import readJsonlFile from "../utils/retiveJsonFile.js"
 import downloadJsonlFile from "../utils/downLoadJsonFile.js";
+import Store from "../models/stores.model.js";
+import ApiError from "../utils/ApiError.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import { 
+  shopifyGraphQLEndpoint ,
+  customerSegmentBulkQuery,
+  operationQuery
+} from "../constant.js"
 
 const cryption = new Cryptr(process.env.ENCRYPTION_STRING);
 
-export const getServerKey = async (req, res) => {
+export const getServerKey = asyncHandler( async (req, res) => {
 
-  try {
+  const store = await Store.findByPk(req?.shopId)
 
-    // const shop = req.query.shop;
-    // const [, sessionDetail] = await Session.findAll({ where: { shop: shop } });
-
-    if (!sessionDetail || !sessionDetail.serverKey) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Server key not found" });
-    }
-
-    const serverKey = sessionDetail.serverKey;
-
-    return res.status(200).json({
-      success: true,
-      serverKey: serverKey
-    });
-
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ success: false, message: error.message });
-  }
-};
-
-export const updateServerKey = async (req, res) => {
-
-  try {
-
-    const { serverKey } = req?.body
-    const shop = req?.query?.shop;
-
-    if (!serverKey) {
-      return res.status(400).json({
-        success: false,
-        message: "Server Key missing"
-      })
-    }
-
-    const storeData = await Session.update(
-      {
-        serverKey: serverKey
-      },
-      {
-        where: { shop: shop }
-      }
+  if(!store || !store.serverKey){
+    return next(
+      new ApiError(
+        "Server key not found",
+        404  
+      )
     )
+  }
 
-    if (!storeData) {
-      return res.status(400).json({
-        success: false,
-        message: "Failure to update ServerKey"
-      })
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      store.serverKey,
+      "Data send successfull"
+    )
+  )
+})
+
+export const updateServerKey = asyncHandler(async (req, res) => {
+
+  const { serverKey } = req?.body
+
+  if (!serverKey) {
+    return next(
+      new ApiError(
+        "Server key missing",
+        400
+      )
+    )
+  }
+
+  let store = await Store.findByPk(req?.shopId)
+
+  if(!store){
+    return next(
+      new ApiError(
+        "Store not found",
+        404
+      )
+    )
+  }
+
+  storeData = await Store.update(
+    {
+      serverKey: serverKey
+    },
+    {
+      where: { 
+        shopId : req?.shopId 
+      }
     }
+  )
 
-    return res.status(200).json({
-      success: true,
-      message: "ServerKey set Succeessufull"
-    })
+  if (!store) {
+    return next(
+      new ApiError(
+        "Something went wrong while updating server key",
+         500
+      )
+    )
+  }
 
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  };
-};
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {},
+      "Server key update successfully"
+    )
+  )
+})
 
 export const sendNotification = async (req, res) => {
 
   try {
 
-    const shop = req.query?.shop;
+    // const shop = req.query?.shop;
 
-    console.log("Enter")
+    // console.log("Enter")
 
-    if (!shop) {
-      return res.status(400).json({
-        success: false,
-        message: "No Shop Provided"
-      })
+    // if (!shop) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "No Shop Provided"
+    //   })
+    // }
+
+    const store = await Store.findByPk(req?.shopId)
+
+    if(!store || !store.serverKey ){
+      return next(
+        new ApiError(
+          "Server key not found",
+          404
+        )
+      )
     }
 
-    const [, sessionDetail] = await Session.findAll({ where: { shop: shop } })
+    // const [, sessionDetail] = await Session.findAll({ where: { shop: shop } })
 
-    if (sessionDetail === null) {
-      return undefined;
-    }
-    if (sessionDetail.content.length == 0) {
-      return undefined;
-    }
+    // if (sessionDetail === null) {
+    //   return undefined;
+    // }
+    // if (sessionDetail.content.length == 0) {
+    //   return undefined;
+    // }
 
     console.log("Enter upto 104")
 
-    const { accessToken } = JSON.parse(cryption.decrypt(sessionDetail.content));
+    // const { accessToken } = JSON.parse(cryption.decrypt(sessionDetail.content));
 
-    const shopifyGraphQLEndpoint = `https://${shop}/admin/api/${process.env.SHOPIFY_API_VERSION}/graphql.json`;
+    // const shopifyGraphQLEndpoint = `https://${shop}/admin/api/${process.env.SHOPIFY_API_VERSION}/graphql.json`;
 
     const { title, body, segments: { name, id }, click_action } = req.body?.notificationMessage;
 
     if (!title || !body || !name || !id) {
-      return res.status(400).json({
-        success: false,
-        message: "Please Provide title message and selected Segment",
-      });
+      return next(
+        new ApiError(
+          "Please Provide title , message and selected Segment",
+          400
+        )
+      )
     }
 
     // Set up the Axios request config for shopify
-    const axiosShopifyConfig = {
-      headers: {
-        "Content-Type": "application/json",
-        "X-Shopify-Access-Token": accessToken, // remove static value add because we haven't access of user
-      },
-    };
+    // const axiosShopifyConfig = {
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //     "X-Shopify-Access-Token": accessToken, // remove static value add because we haven't access of user
+    //   },
+    // };
 
     // Set up the Axios request config for firebase
     const axiosFirebaseConfig = {
       headers: {
-        Authorization: `key=${sessionDetail.serverKey}`,
+        Authorization: `key=${store.serverKey}`,
         "Content-Type": "application/json",
       },
     };
 
-    console.log("ServerKey" , sessionDetail.serverKey , "Server key end")
+    // console.log("ServerKey" , sessionDetail.serverKey , "Server key end")
 
     console.log("Enter upto 135")
 
 
     const topicName = name.replace(/\W+/g, '_'); // Replace non-alphanumeric characters with underscores
 
-    const customerSegmentBulkQuery = `
-   mutation {
-   bulkOperationRunQuery(
-   query: """
-   {
-    customerSegmentMembers(
-        first: 100
-        segmentId: "${id}"
-    ) {
-        edges {
-            node {
-            firstName
-            metafield(key: "custom.firebase_token") {
-              key
-              value
-            }
+//     const customerSegmentBulkQuery = `
+//    mutation {
+//    bulkOperationRunQuery(
+//    query: """
+//    {
+//     customerSegmentMembers(
+//         first: 100
+//         segmentId: "${id}"
+//     ) {
+//         edges {
+//             node {
+//             firstName
+//             metafield(key: "custom.firebase_token") {
+//               key
+//               value
+//             }
 
-            }
-        }
-    }
-   }
-    """
-  ) {
-    bulkOperation {
-      id
-      status
-    }
-    userErrors {
-      field
-      message
-    }
-  }
-    }`
+//             }
+//         }
+//     }
+//    }
+//     """
+//   ) {
+//     bulkOperation {
+//       id
+//       status
+//     }
+//     userErrors {
+//       field
+//       message
+//     }
+//   }
+// }`
 
     console.log("Enter upto 174")
 
+    const customersBulkIdResponse = await shopifyApi(
+      shopifyGraphQLEndpoint(req.session?.shop),
+      customerSegmentBulkQuery(id),
+      axiosShopifyConfig(req.session?.accessToken),
+    );
 
-    const customersBulkIdResponse = await axios.post(shopifyGraphQLEndpoint, { query: customerSegmentBulkQuery }, axiosShopifyConfig);
+
+    // const customersBulkIdResponse = await axios.post(shopifyGraphQLEndpoint(req.session?.shop), { query: customerSegmentBulkQuery }, axiosShopifyConfig);
 
     const operationId = (customersBulkIdResponse?.data?.data?.bulkOperationRunQuery?.bulkOperation?.id) + ""
 
@@ -212,26 +248,32 @@ export const sendNotification = async (req, res) => {
       operationStatus = await checkOperationStatus(operationId);
     }
 
-    // Continue to retrieve the URL
-    const operationQuery = `{
-    node(id: "${operationId}") {
-    ... on BulkOperation {
-      url
-      partialDataUrl
-      errorCode
-      status
-    }
-  }
-}
-`;
+//     // Continue to retrieve the URL
+//     const operationQuery = `{
+//     node(id: "${operationId}") {
+//     ... on BulkOperation {
+//       url
+//       partialDataUrl
+//       errorCode
+//       status
+//     }
+//   }
+// }
+// `;
 console.log("Enter upto 227")
 
+const operationResponse = await shopifyApi(
+  shopifyGraphQLEndpoint(req.session?.shop),
+  operationQuery(operationId),
+  axiosShopifyConfig(req.session?.accessToken)
+);
+
     //Execute the GraphQL query for operation details
-    const operationResponse = await axios.post(
-      shopifyGraphQLEndpoint,
-      { query: operationQuery },
-      axiosShopifyConfig
-    );
+    // const operationResponse = await axios.post(
+    //   shopifyGraphQLEndpoint,
+    //   { query: operationQuery },
+    //   axiosShopifyConfig
+    // );
 
     const operationUrl = operationResponse?.data?.data?.node?.url;
 

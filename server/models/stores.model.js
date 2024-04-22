@@ -25,6 +25,10 @@ const Store = sequelize.define('Store', {
     type: DataTypes.STRING,
     allowNull: false
   },
+  serverKey:{ // Server Key of Store User
+    type : DataTypes.TEXT,
+    defaultValue:null
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     allowNull:false,
